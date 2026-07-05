@@ -19,7 +19,7 @@ const Sidebar = () => {
       icon: CalendarDays,
     },
     {
-      name: "Tasks",
+      name: "Today's Task",
       path: "/tasks",
       icon: CheckSquare,
     },

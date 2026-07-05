@@ -1,16 +1,11 @@
 export interface ScheduleItem {
   id: number;
   title: string;
-
   startTime: string;
   endTime: string;
-
   completed: boolean;
-
-  priority:
-    | "High"
-    | "Medium"
-    | "Low";
+  completedAt?: string;
+  priority: "High" | "Medium" | "Low";
 
   repeatType:
     | "once"
@@ -18,4 +13,8 @@ export interface ScheduleItem {
     | "custom";
 
   days: string[];
+
+  lastCompletedDate?: string;
+
+  lastResetDate?: string;
 }

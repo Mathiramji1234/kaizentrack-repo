@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ScheduleItem } from "../types/Schedule";
 import { filterTasks } from "../utils/taskFilter";
-
+import { getTodayTasks } from "../utils/getTodayTasks";
 const Tasks = () => {
   const [tasks, setTasks] = useState<ScheduleItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,12 +22,15 @@ const Tasks = () => {
     }
   }, []);
 
-  const filteredTasks = filterTasks(
-    tasks,
-    statusFilter,
-    searchTerm,
-    priorityFilter
-  );
+const todayTasks =
+  getTodayTasks(tasks);
+
+const filteredTasks = filterTasks(
+  todayTasks,
+  statusFilter,
+  searchTerm,
+  priorityFilter
+);
 
 const pendingTasks = filteredTasks.filter(
   (task) => !task.completed
@@ -52,6 +55,15 @@ const completedTasks = filteredTasks.filter(
     }
   };
 
+  const productivity =
+  todayTasks.length === 0
+    ? 0
+    : Math.round(
+        (completedTasks.length /
+          todayTasks.length) *
+          100
+  );
+  
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold">
@@ -154,7 +166,7 @@ const completedTasks = filteredTasks.filter(
 </div>
     
     <p className="text-slate-400 text-sm">
-      Total Tasks: {tasks.length}
+      Total Tasks Today: {todayTasks.length}
     </p>
 
       <div className="bg-slate-900 rounded-xl p-6">
@@ -162,28 +174,20 @@ const completedTasks = filteredTasks.filter(
     Task Productivity
   </h2>
 
-  <p className="mb-3">
-    {completedTasks.length} /
-    {tasks.length} completed
-  </p>
+<p className="mb-3">
+  {completedTasks.length} /
+  {todayTasks.length} completed
+</p>
 
-  <div className="w-full bg-slate-800 rounded-full h-4">
-    <div
-      className="bg-indigo-600 h-4 rounded-full"
-        style={{
-          width: `${
-            tasks.length
-              ? (
-                  (completedTasks.length /
-                    tasks.length) *
-                  100
-                ).toFixed(0)
-              : 0
-          }%`,
-        }}
-      />
-    </div>
+<div className="w-full bg-slate-800 rounded-full h-4">
+  <div
+    className="bg-indigo-600 h-4 rounded-full transition-all duration-500"
+    style={{
+      width: `${productivity}%`,
+    }}
+  />
   </div>
+</div>
 
       {/* Pending */}
 {statusFilter !== "completed" && (

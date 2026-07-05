@@ -1,17 +1,26 @@
 import { useEffect, useState } from "react";
 import type { ScheduleItem } from "../types/Schedule";
 import { sortTasks } from "../utils/taskSorter";
-
+import { resetRecurringTasks } from "../utils/recurringTask";
+import { updateTodayProductivity } from "../utils/productivityHistory";
 const Schedule = () => {
   const [tasks, setTasks] = useState<ScheduleItem[]>(() => {
     const savedTasks = localStorage.getItem("tasks");
 
     if (savedTasks) {
-      return JSON.parse(savedTasks);
+      return resetRecurringTasks(
+        JSON.parse(savedTasks)
+      );
     }
 
     return [];
   });
+
+  useEffect(() => {
+    setTasks((prev) =>
+      resetRecurringTasks(prev)
+    );
+  }, []);
 
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -31,7 +40,12 @@ const Schedule = () => {
   >("time");
 
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
+    localStorage.setItem(
+      "tasks",
+      JSON.stringify(tasks)
+    );
+
+    updateTodayProductivity(tasks);
   }, [tasks]);
 
   const addTask = () => {
@@ -48,10 +62,45 @@ const Schedule = () => {
     }
 
     const conflictingTask = tasks.find((task) => {
-      return (
+      const timeConflict =
         startTime < task.endTime &&
-        endTime > task.startTime
-      );
+        endTime > task.startTime;
+
+      if (!timeConflict) return false;
+
+      // Daily conflicts with everything
+
+      if (
+        repeatType === "daily" ||
+        task.repeatType === "daily"
+      ) {
+        return true;
+      }
+
+      // Once conflicts with once
+
+      if (
+        repeatType === "once" &&
+        task.repeatType === "once"
+      ) {
+        return true;
+      }
+
+      // Custom vs Custom
+
+      if (
+        repeatType === "custom" &&
+        task.repeatType === "custom"
+      ) {
+        return selectedDays.some((day) =>
+          task.days.includes(day)
+        );
+      }
+
+      // Once vs Custom
+      // (for now allow)
+
+      return false;
     });
 
     if (conflictingTask) {
@@ -90,18 +139,28 @@ const Schedule = () => {
     setTasks(tasks.filter((task) => task.id !== id));
   };
 
-  const toggleTaskStatus = (id: number) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              completed: !task.completed,
-            }
-          : task
-      )
-    );
-  };
+const toggleTaskStatus = (
+  id: number
+) => {
+  setTasks(
+    tasks.map((task) => {
+      if (task.id !== id) return task;
+
+      const newCompletedState =
+        !task.completed;
+
+      return {
+        ...task,
+        completed: newCompletedState,
+
+        completedAt: newCompletedState
+          ? new Date().toISOString()
+          : undefined,
+      };
+    })
+  );
+};
+
 
   const sortedTasks = sortTasks(
     tasks,
@@ -364,6 +423,15 @@ const Schedule = () => {
                     ? "☑ Completed"
                     : "☐ Pending"}
                 </p>
+                {task.completedAt && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Completed:
+                    {" "}
+                    {new Date(
+                      task.completedAt
+                    ).toLocaleString()}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3">
